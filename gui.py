@@ -1,4 +1,3 @@
-# gui.py
 import tkinter as tk
 from tkinter import ttk, filedialog, scrolledtext, simpledialog, messagebox
 # import threading # Threading para 'run_all' pode ser complexo com Tkinter, 'after' é mais seguro
@@ -32,11 +31,71 @@ class MipsGui(tk.Tk):
         self.program_loaded = False
         self._running_all_active = False # Flag para controlar o loop de "Rodar Tudo"
 
+        self._apply_dark_theme() # Aplica o tema escuro antes de criar os widgets
         self._create_widgets()
         self.update_all_displays() 
 
     def gui_log_message_assembler(self, msg):
         self.gui_log_message(f"[ASM] {msg.strip()}") # gui_log_message adiciona \n
+
+    def _apply_dark_theme(self):
+        # Cores para o tema escuro
+        bg_color = "#2E2E2E"  # Fundo principal escuro
+        fg_color = "#E0E0E0"  # Cor do texto claro para contraste
+        
+        # Cores para elementos interativos e bordas
+        panel_bg = "#3C3C3C" # Fundo para painéis e label frames
+        button_bg = "#505050" # Fundo de botões
+        button_active_bg = "#606060" # Fundo de botões quando ativo
+        text_widget_bg = "#1E1E1E" # Fundo de campos de texto (editor, console, memória)
+        text_widget_fg = "#D4D4D4" # Cor do texto em campos de texto
+
+        # Configurações globais para a janela
+        self.config(bg=bg_color)
+        self.option_add('*tearOff', tk.FALSE) # Desabilita menus destacáveis
+
+        # Criação de um estilo ttk para personalizar widgets
+        style = ttk.Style(self)
+        style.theme_use('default') # Começa com o tema padrão para modificação
+
+        # Estilo para Frames e LabelFrames
+        style.configure("TFrame", background=bg_color)
+        style.configure("TLabelframe", background=bg_color, foreground=fg_color, font=('Segoe UI', 10, 'bold'))
+        style.configure("TLabelframe.Label", background=bg_color, foreground=fg_color)
+        
+        # Estilo para PanedWindow (os separadores)
+        style.configure("TPanedwindow", background=bg_color)
+
+        # Estilo para Botões
+        style.configure("TButton", 
+                        background=button_bg, 
+                        foreground=fg_color, 
+                        font=('Segoe UI', 9),
+                        relief="flat", # Borda plana
+                        padding=5)
+        style.map("TButton", 
+                  background=[('active', button_active_bg), ('disabled', button_bg)],
+                  foreground=[('disabled', '#A0A0A0')]) # Cor do texto desabilitado
+
+        # Estilo para Labels
+        style.configure("TLabel", background=bg_color, foreground=fg_color, font=('Segoe UI', 9))
+
+        # Estilo para Entry (campos de entrada de texto)
+        style.configure("TEntry", 
+                        fieldbackground=text_widget_bg, 
+                        foreground=text_widget_fg, 
+                        insertbackground=text_widget_fg, # Cor do cursor
+                        bordercolor=button_bg, 
+                        lightcolor=button_bg, 
+                        darkcolor=button_bg) # Cores da borda do Entry
+
+        # Estilo para ScrolledText (usa as cores diretas do Tkinter, não ttk style)
+        # O ScrolledText é uma combinação de Text e Scrollbar, o Text widget não é um ttk widget
+        # Então definimos as cores diretamente na criação do widget.
+        # No _create_widgets, precisamos passar essas cores.
+        self._text_widget_bg = text_widget_bg
+        self._text_widget_fg = text_widget_fg
+        self._text_widget_insertbackground = text_widget_fg
 
     def _create_widgets(self):
         main_pane = ttk.PanedWindow(self, orient=tk.HORIZONTAL)
@@ -48,8 +107,15 @@ class MipsGui(tk.Tk):
 
         # Left Pane
         code_frame = ttk.LabelFrame(left_pane, text="Editor Assembly")
-        self.code_text = scrolledtext.ScrolledText(code_frame, wrap=tk.WORD, height=20, undo=True) # Undo habilitado
+        # Aplica cores escuras ao ScrolledText
+        self.code_text = scrolledtext.ScrolledText(
+            code_frame, wrap=tk.WORD, height=20, undo=True,
+            bg=self._text_widget_bg, fg=self._text_widget_fg,
+            insertbackground=self._text_widget_insertbackground,  # Cor do cursor
+            font=("Consolas", 9)
+        )
         self.code_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
         # Adicionar save button para o editor
         save_btn_frame = ttk.Frame(code_frame)
         save_btn_frame.pack(fill=tk.X, padx=5)
@@ -75,7 +141,11 @@ class MipsGui(tk.Tk):
         left_pane.add(controls_frame, weight=0)
 
         io_frame = ttk.LabelFrame(left_pane, text="Console I/O e Logs")
-        self.io_text = scrolledtext.ScrolledText(io_frame, wrap=tk.WORD, height=12, state=tk.DISABLED, font=("Consolas", 9))
+        self.io_text = scrolledtext.ScrolledText(
+            io_frame, wrap=tk.WORD, height=12, state=tk.DISABLED, 
+            bg=self._text_widget_bg, fg=self._text_widget_fg,
+            font=("Consolas", 9)
+        )
         self.io_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         input_field_frame = ttk.Frame(io_frame)
         input_field_frame.pack(fill=tk.X, padx=5, pady=2)
@@ -124,7 +194,11 @@ class MipsGui(tk.Tk):
         ttk.Button(mem_ctrl_f, text="Texto", command=lambda: self.set_mem_view_addr(self.simulator.text_segment_mips_base)).pack(side=tk.LEFT, padx=1)
         ttk.Button(mem_ctrl_f, text="Dados", command=lambda: self.set_mem_view_addr(self.simulator.data_segment_mips_base)).pack(side=tk.LEFT, padx=1)
         ttk.Button(mem_ctrl_f, text="$sp", command=lambda: self.set_mem_view_addr(self.simulator._get_reg(29))).pack(side=tk.LEFT, padx=1)
-        self.mem_text = scrolledtext.ScrolledText(mem_frame, wrap=tk.NONE, height=15, state=tk.DISABLED, font=("Consolas", 9))
+        self.mem_text = scrolledtext.ScrolledText(
+            mem_frame, wrap=tk.NONE, height=15, state=tk.DISABLED, 
+            bg=self._text_widget_bg, fg=self._text_widget_fg,
+            font=("Consolas", 9)
+        )
         self.mem_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
         stats_frame = ttk.LabelFrame(right_pane, text="Estatísticas de Execução")
@@ -287,8 +361,8 @@ class MipsGui(tk.Tk):
         self.gui_log_message("Montando código...")
         # Garante que o simulador use as configs de CPU atuais ao ser resetado/recriado
         self.simulator = MipsSimulator(clock_hz=self.simulator.clock_hz, 
-                                    cpi_config=self.simulator.cpi_values, 
-                                    gui_hooks=self.simulator.gui_hooks)
+                                     cpi_config=self.simulator.cpi_values, 
+                                     gui_hooks=self.simulator.gui_hooks)
         self.assembler = Assembler(logger_func=self.gui_log_message_assembler) # Recria assembler
 
         # Obter conteúdo do editor de texto em vez de reler o arquivo
@@ -337,8 +411,8 @@ class MipsGui(tk.Tk):
         self.gui_log_message("Resetando simulador...")
         # Mantém configs de CPU, mas reseta o estado do simulador e recarrega programa se houver
         self.simulator = MipsSimulator(clock_hz=self.simulator.clock_hz, 
-                                    cpi_config=self.simulator.cpi_values, 
-                                    gui_hooks=self.simulator.gui_hooks)
+                                     cpi_config=self.simulator.cpi_values, 
+                                     gui_hooks=self.simulator.gui_hooks)
         if self.current_asm_file: # Se um arquivo foi carregado e montado
             self.gui_log_message("Remontando e recarregando o arquivo atual...")
             self.assemble_code() # Isso irá recarregar o programa no simulador resetado
@@ -347,31 +421,43 @@ class MipsGui(tk.Tk):
             self.update_all_displays() # Atualiza para estado vazio
         self.gui_log_message("Simulador resetado.")
 
-    def gui_print_int(self, val): self.io_text.config(state=tk.NORMAL); self.io_text.insert(tk.END, str(val)); self.io_text.see(tk.END); self.io_text.config(state=tk.DISABLED)
-    def gui_print_string(self, s): self.io_text.config(state=tk.NORMAL); self.io_text.insert(tk.END, s); self.io_text.see(tk.END); self.io_text.config(state=tk.DISABLED)
-    def gui_print_char(self, c): self.io_text.config(state=tk.NORMAL); self.io_text.insert(tk.END, c); self.io_text.see(tk.END); self.io_text.config(state=tk.DISABLED)
+    def gui_print_int(self, val): 
+        self.io_text.config(state=tk.NORMAL); self.io_text.insert(tk.END, str(val)); self.io_text.see(tk.END); self.io_text.config(state=tk.DISABLED)
+    
+    def gui_print_string(self, s): 
+        self.io_text.config(state=tk.NORMAL); self.io_text.insert(tk.END, s); self.io_text.see(tk.END); self.io_text.config(state=tk.DISABLED)
+    
+    def gui_print_char(self, c): 
+        self.io_text.config(state=tk.NORMAL); self.io_text.insert(tk.END, c); self.io_text.see(tk.END); self.io_text.config(state=tk.DISABLED)
+    
     def gui_log_message(self, msg):
         if not msg.endswith('\n'): msg += '\n'
         self.io_text.config(state=tk.NORMAL); self.io_text.insert(tk.END, msg); self.io_text.see(tk.END); self.io_text.config(state=tk.DISABLED)
+    
     def _enable_input_area(self, prompt="Entrada: "):
         self.gui_log_message(prompt.strip()) # Loga o prompt sem adicionar \n extra
         self.input_entry.config(state=tk.NORMAL); self.btn_submit_input.config(state=tk.NORMAL); self.input_entry.focus()
+    
     def gui_read_int_start(self): self._enable_input_area("syscall read_int: ")
     def gui_read_char_start(self): self._enable_input_area("syscall read_char: ")
     def gui_read_string_start(self, max_len): self._enable_input_area(f"syscall read_string (max {max_len-1} chars): ")
+    
     def submit_gui_input(self, event=None):
         user_val = self.input_var.get(); self.input_var.set("")
         self.input_entry.config(state=tk.DISABLED); self.btn_submit_input.config(state=tk.DISABLED)
         self.gui_log_message(f"Input: {user_val}") # Loga o que foi digitado
         self.simulator.provide_gui_input(user_val)
+    
     def resume_simulation_after_input(self):
         self.update_button_states(); self.gui_log_message("Entrada recebida.")
         if self._running_all_active: self.gui_log_message("Continuando 'Rodar Tudo'..."); self.after(1, self.run_all)
         else: self.gui_log_message("Prossiga com 'Passo' ou 'Rodar Tudo'.")
+    
     def handle_program_termination(self, exit_code):
         self._running_all_active = False
         self.gui_log_message(f"PROGRAMA TERMINADO. Código de saída: {exit_code}")
         self.update_all_displays(); self.update_button_states()
+    
     def handle_simulation_end(self): # Chamado quando self.running se torna False por qualquer motivo
         self._running_all_active = False
         if not self.simulator.get_state_for_gui()['waiting_for_input']: # Só se não estiver esperando input
