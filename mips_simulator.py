@@ -118,7 +118,7 @@ class MipsSimulator:
                 data_start_array_offset = self._mips_addr_to_mem_offset(self.data_segment_mips_base)
                 data_len = len(data_segment_bytes)
                 if data_start_array_offset + data_len > ds_array_end : # ds_array_end é o fim da seção de dados no array
-                     raise MemoryAccessException(f"Segmento de dados (len {data_len}) excede seção de dados do array.")
+                    raise MemoryAccessException(f"Segmento de dados (len {data_len}) excede seção de dados do array.")
                 self.memory[data_start_array_offset : data_start_array_offset + data_len] = data_segment_bytes
                 self.heap_pointer_mips = self.data_segment_mips_base + data_len
                 self._log_gui(f"Dados carregados em MIPS {self.data_segment_mips_base:#0x} ({data_len} bytes). Heap MIPS em {self.heap_pointer_mips:#0x}.")
@@ -203,13 +203,13 @@ class MipsSimulator:
                 if funct == 0x20: # ADD
                     res = rs_val + rt_val
                     if (rs_val > 0 and rt_val > 0 and to_signed_32(res) < 0) or \
-                       (rs_val < 0 and rt_val < 0 and to_signed_32(res) > 0): raise ArithmeticOverflow("ADD")
+                    (rs_val < 0 and rt_val < 0 and to_signed_32(res) > 0): raise ArithmeticOverflow("ADD")
                     self._set_reg(rd_idx, res)
                 elif funct == 0x21: self._set_reg(rd_idx, rs_val + rt_val) # ADDU
                 elif funct == 0x22: # SUB
                     res = rs_val - rt_val
                     if (rs_val > 0 and rt_val < 0 and to_signed_32(res) < 0) or \
-                       (rs_val < 0 and rt_val > 0 and to_signed_32(res) > 0): raise ArithmeticOverflow("SUB")
+                    (rs_val < 0 and rt_val > 0 and to_signed_32(res) > 0): raise ArithmeticOverflow("SUB")
                     self._set_reg(rd_idx, res)
                 elif funct == 0x23: self._set_reg(rd_idx, rs_val - rt_val) # SUBU
                 elif funct == 0x24: self._set_reg(rd_idx, rs_val & rt_val) # AND
@@ -245,7 +245,7 @@ class MipsSimulator:
             elif opcode == 0x08: # ADDI
                 res = rs_val + imm16_signed
                 if (rs_val > 0 and imm16_signed > 0 and to_signed_32(res) < 0) or \
-                   (rs_val < 0 and imm16_signed < 0 and to_signed_32(res) > 0): raise ArithmeticOverflow("ADDI")
+                (rs_val < 0 and imm16_signed < 0 and to_signed_32(res) > 0): raise ArithmeticOverflow("ADDI")
                 self._set_reg(rt_idx, res)
             elif opcode == 0x09: self._set_reg(rt_idx, rs_val + imm16_signed) # ADDIU
             elif opcode == 0x0C: self._set_reg(rt_idx, rs_val & imm16_unsigned) # ANDI
